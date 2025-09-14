@@ -1,0 +1,13 @@
+import { z } from "zod";
+
+export const createOrUpdateSchema = z.object({
+  databaseId: z.string().optional(),
+  title: z.string().min(1, "title is required"),
+  slug: z.string().trim().optional(),
+
+  properties: z.record(z.string(), z.unknown()).optional(),
+
+  children: z.array(z.unknown()).optional(),
+});
+
+export type CreateOrUpdateInput = z.infer<typeof createOrUpdateSchema>;

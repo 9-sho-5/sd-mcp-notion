@@ -1,0 +1,33 @@
+{
+  "name": "sd-mcp-notion",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "start": "tsx src/index.ts",
+    "build": "tsc -p .",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "test:create": "scripts/notion-tests.sh create",
+    "test:upsert": "scripts/notion-tests.sh upsert",
+    "test:props": "scripts/notion-tests.sh props",
+    "test:children": "scripts/notion-tests.sh children"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@notionhq/client": "^2.3.0",
+    "dotenv": "^17.2.2",
+    "express": "^5.1.0",
+    "zod": "^4.1.8"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.3",
+    "@types/node": "^24.4.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.5.0"
+  },
+  "packageManager": "pnpm@^9.0.0"
+}
