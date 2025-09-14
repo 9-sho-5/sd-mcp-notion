@@ -1,15 +1,53 @@
-// src/utils/templates/lessonV1.ts
 import type { BlockObjectRequest } from "@notionhq/client/build/src/api-endpoints";
-import { blob } from "stream/consumers";
+import { formatCssForNotion, formatHtmlForNotion } from "../codeFormat";
 
-// Notionのリッチテキストを手軽に作る小ヘルパ
-const rt = (text: string): { type: "text"; text: { content: string } } => ({
-  type: "text",
-  text: { content: text },
-});
+// プレーンテキスト RichText
+const rt = (
+  text: string
+): {
+  type: "text";
+  text: { content: string };
+  annotations?: Partial<{
+    bold: boolean;
+    code: boolean;
+    italic: boolean;
+    underline: boolean;
+    strikethrough: boolean;
+  }>;
+} => ({ type: "text", text: { content: text } });
 
-export function buildLessonTemplate(sampleTitle: string): BlockObjectRequest[] {
-  const titleInCallout = `${sampleTitle}を作ってみよう！`;
+// 注釈付き RichText
+const rta = (
+  text: string,
+  annotations: NonNullable<ReturnType<typeof rt>["annotations"]>
+): ReturnType<typeof rt> => ({ ...rt(text), annotations });
+
+/**
+ * レッスン用テンプレート
+ * @param sampleTitle 見出しなどに使うサンプルタイトル
+ * @param htmlSnippet HTMLコードブロックの中身（省略可）
+ * @param cssSnippet  CSSコードブロックの中身（省略可）
+ */
+export async function buildLessonTemplate(
+  sampleTitle: string,
+  htmlSnippet?: string,
+  cssSnippet?: string
+): Promise<BlockObjectRequest[]> {
+  const calloutTitle = `${sampleTitle}を作ってみよう！`;
+
+  const htmlRaw =
+    htmlSnippet ??
+    `<body>
+  <!-- ここから -->
+  <!-- ここまで -->`;
+
+  const cssRaw = cssSnippet ?? `/* ここにコードを追加する */`;
+
+  // ★ ここで整形（末尾改行は落ちる）
+  const [htmlCode, cssCode] = await Promise.all([
+    formatHtmlForNotion(htmlRaw),
+    formatCssForNotion(cssRaw),
+  ]);
 
   return [
     // ℹ️ Callout
@@ -17,32 +55,10 @@ export function buildLessonTemplate(sampleTitle: string): BlockObjectRequest[] {
       type: "callout",
       callout: {
         rich_text: [
-          {
-            type: "text",
-            text: { content: `[${sampleTitle}]` },
-            annotations: { bold: true },
-          },
-          {
-            type: "text",
-            text: { content: "を作ってみよう！" },
-            annotations: { bold: true },
-          },
-          {
-            type: "text",
-            text: { content: "\n" },
-          },
-          {
-            type: "text",
-            text: { content: "この教科書では、" },
-          },
-          {
-            type: "text",
-            text: { content: `[${sampleTitle}]` },
-          },
-          {
-            type: "text",
-            text: { content: "を作成していきます！" },
-          },
+          rta(`${sampleTitle}`, { bold: true }),
+          rta("を作ってみよう！", { bold: true }),
+          rt("\n"),
+          rt("この教科書では、下図のようなアニメーションを作成していきます！"),
         ],
         icon: { type: "emoji", emoji: "ℹ️" },
         color: "gray_background",
@@ -61,17 +77,9 @@ export function buildLessonTemplate(sampleTitle: string): BlockObjectRequest[] {
       type: "paragraph",
       paragraph: {
         rich_text: [
-          {
-            type: "text",
-            text: { content: "index.html" },
-            annotations: { code: true },
-          },
+          rta("index.html", { code: true }),
           rt("に下記のコード（ここから〜ここまで）を"),
-          {
-            type: "text",
-            text: { content: "body の開始タグ" },
-            annotations: { code: true },
-          },
+          rta("body の開始タグ", { code: true }),
           rt("直後に追記してみましょう！"),
         ],
       },
@@ -80,7 +88,7 @@ export function buildLessonTemplate(sampleTitle: string): BlockObjectRequest[] {
       type: "code",
       code: {
         language: "html",
-        rich_text: [rt(`<body>\n  <!-- ここから -->\n  \n  <!-- ここまで -->`)],
+        rich_text: [rt(htmlCode)],
       },
     },
 
@@ -97,11 +105,7 @@ export function buildLessonTemplate(sampleTitle: string): BlockObjectRequest[] {
       paragraph: {
         rich_text: [
           rt("次に、すでにある"),
-          {
-            type: "text",
-            text: { content: "style.css" },
-            annotations: { code: true },
-          },
+          rta("style.css", { code: true }),
           rt("に下記のコードを追記してみましょう！"),
         ],
       },
@@ -110,7 +114,7 @@ export function buildLessonTemplate(sampleTitle: string): BlockObjectRequest[] {
       type: "code",
       code: {
         language: "css",
-        rich_text: [rt(`/* ここにコードを追加する */`)],
+        rich_text: [rt(cssCode)],
       },
     },
 

@@ -1,0 +1,7 @@
+{
+  "title": "横スイープ塗り",
+  "htmlCode": "<button class='btn sweep'><span>Hover me</span></button>",
+  "cssCode": ".btn{\n  position: relative;\n  overflow: hidden;\n  display: inline-block;\n  padding: .7rem 1.2rem;\n  border-radius: .6rem;\n  font-weight: 600;\n  color: #111;\n  border: 1px solid #111;\n  background: #fff;\n}\n.btn.sweep::before{\n  content: '';\n  position: absolute;\n  inset: 0;\n  background: #111;\n  transform: translateX(-100%);\n  transition: transform .3s ease;\n  z-index: 0;\n}\n.btn.sweep:hover::before{\n  transform: translateX(0);\n}\n.btn.sweep{\n  transition: color .3s ease;\n}\n.btn.sweep:hover{\n  color: #fff;\n}\n.btn.sweep > *{\n  position: relative;\n  z-index: 1;\n}",
+  "tags": ["ホバーアニメーション"],
+  "level": "中級"
+}

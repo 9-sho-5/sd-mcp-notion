@@ -13,5 +13,4 @@ export const ENV = {
     "NOTION_DATABASE_ID"
   ),
   NOTION_TITLE_PROP: process.env.NOTION_TITLE_PROP ?? "Title",
-  NOTION_SLUG_PROP: process.env.NOTION_SLUG_PROP ?? "Slug",
 } as const;

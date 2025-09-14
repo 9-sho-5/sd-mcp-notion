@@ -1,0 +1,7 @@
+{
+  "title": "浮き上がり＋グロー",
+  "htmlCode": "<button class='btn glow'>Hover me</button>",
+  "cssCode": ".btn{\n  display:inline-block; padding:.7rem 1.2rem; border-radius:.6rem; font-weight:600;\n  background:#111; color:#fff; transition:transform .2s ease, box-shadow .2s ease;\n}\n.btn.glow:hover{\n  transform:translateY(-2px);\n  box-shadow:0 10px 20px rgba(17,17,17,.25), 0 0 0 4px rgba(17,17,17,.1) inset;\n}",
+  "tags": ["ホバーアニメーション"],
+  "level": "初級"
+}

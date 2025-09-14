@@ -16,13 +16,3 @@ export function buildTitleProperty(title: string): CreateProps {
   } satisfies CreateProps;
   return obj;
 }
-
-export function buildSlugProperty(slug?: string): CreateProps {
-  if (!slug) return {} as CreateProps;
-  const obj = {
-    [ENV.NOTION_SLUG_PROP]: {
-      rich_text: [{ type: "text", text: { content: slug } as const }],
-    },
-  } satisfies CreateProps;
-  return obj;
-}

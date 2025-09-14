@@ -12,7 +12,9 @@ export const createOrUpdateSchema = z.object({
   template: z.enum(["lesson-v1"]).optional(),
   templateVars: z
     .object({
-      sampleTitle: z.string().optional(), // [ここに作例タイトル] の差し替え用
+      sampleTitle: z.string().optional(),
+      htmlCode: z.string().optional(),
+      cssCode: z.string().optional(),
     })
     .optional(),
 });

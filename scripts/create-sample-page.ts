@@ -1,105 +1,149 @@
 #!/usr/bin/env -S tsx
 /**
- * サンプルページ作成スクリプト（parseArgs 版）
+ * サンプルページ作成スクリプト（タイトルは JSON から取得）
  *
- * 使い方:
- *   pnpm run sample:create-page -- "サンプル教材A"
- *   pnpm run sample:create-page -- "サンプル教材B" lesson-b
- *   pnpm run sample:create-page -- "サンプル教材C" --slug lesson-c
- *   pnpm run sample:create-page -- "サンプル教材D" --level 初級 --tags "JavaScript,入門" --thumb "https://picsum.photos/seed/1/600/400"
- *
- * 位置引数:
- *   <title> [slug]       # slug は任意。--slug で上書き可
- *
- * オプション:
- *   --slug <value>       : slug を明示指定（DB に Slug 列がある場合のみ）
- *   --level <名前>       : 「レベル」(select)
- *   --tags "<a,b,c>"     : 「タグ」(multi_select)
- *   --thumb <URL>        : 「サムネイル」(files, external)
- *   -h, --help           : ヘルプ表示
+ * 例:
+ *   pnpm run sample:create-page -- --json config/templates/hover-sweep.json
+ *   pnpm run sample:create-page -- --json config/templates/hover-glow.json --slug sweep-1
+ *   pnpm run sample:create-page -- --json config/templates/hover-glow.json --level 初級 --tags "CSS,Hover"
  *
  * 環境変数:
- *   BASE_URL             : 例) http://localhost:3000（既定 http://localhost:3000）
+ *   BASE_URL: 例) http://localhost:3000（既定 http://localhost:3000）
  */
 
 import { parseArgs } from "node:util";
+import { readFile } from "node:fs/promises";
+import { resolve } from "node:path";
 
 type Payload = {
   title: string;
   slug?: string;
   properties?: Record<string, unknown>;
+  htmlCode: string;
+  cssCode: string;
   template?: "lesson-v1";
-  templateVars?: { sampleTitle?: string };
+  templateVars?: { sampleTitle?: string; htmlCode?: string; cssCode?: string };
 };
 
+type TemplateCfg = {
+  title?: string;
+  htmlCode?: string;
+  cssCode?: string;
+  tags?: string[];
+  level?: "初級" | "中級" | "上級";
+};
 const BASE_URL = process.env.BASE_URL ?? "http://localhost:3000";
 const ENDPOINT = `${BASE_URL.replace(/\/$/, "")}/notion/pages`;
 
 function usageAndExit(code = 0): never {
   console.error(
     `Usage:
-  pnpm run sample:create-page -- "<title>" [slug] [--slug <value>] [--level <名前>] [--tags "a,b,c"] [--thumb <URL>]
+  pnpm run sample:create-page -- --json <path> [--slug <value>] [--level <名前>] [--tags "a,b,c"] [--thumb <URL>]
 
 Examples:
-  pnpm run sample:create-page -- "サンプル教材A"
-  pnpm run sample:create-page -- "サンプル教材B" lesson-b
-  pnpm run sample:create-page -- "サンプル教材C" --slug lesson-c
-  pnpm run sample:create-page -- "サンプル教材D" --level 初級 --tags "JavaScript,入門" --thumb "https://picsum.photos/seed/1/600/400"`
+  pnpm run sample:create-page -- --json config/templates/hover-sweep.json
+  pnpm run sample:create-page -- --json config/templates/hover-glow.json --slug glow-1`
   );
   process.exit(code);
 }
 
-// ---- 引数パース（-- は自動で処理される）----
+async function loadJsonTemplate(p: string): Promise<TemplateCfg> {
+  const abs = resolve(process.cwd(), p);
+  const raw = await readFile(abs, "utf8");
+  return JSON.parse(raw);
+}
+
 const { values, positionals } = parseArgs({
   args: process.argv.slice(2),
-  allowPositionals: true,
+  allowPositionals: false, // ← 位置引数は受けない（タイトルも受けない）
   options: {
+    json: { type: "string" },
     slug: { type: "string" },
     level: { type: "string" },
     tags: { type: "string" },
     thumb: { type: "string" },
+    html: { type: "string" }, // 任意上書き
+    css: { type: "string" }, // 任意上書き
     help: { type: "boolean", short: "h" },
   },
 });
 
 if (values.help) usageAndExit(0);
+if (!values.json) {
+  console.error(
+    "Error: --json <path> を指定してください。タイトルは JSON から取得します。"
+  );
+  usageAndExit(1);
+}
+if (positionals.length > 0) {
+  console.error(
+    "Error: 位置引数は使用しません。タイトルは JSON の title を使います。"
+  );
+  usageAndExit(1);
+}
 
-const [posTitle, posSlug] = positionals;
-if (!posTitle) usageAndExit(1);
+const jsonPath = values.json;
+const cfg = await loadJsonTemplate(jsonPath).catch((e) => {
+  console.error(e instanceof Error ? e.message : e);
+  process.exit(1);
+});
 
-const title: string = posTitle;
-const slug: string | undefined = values.slug ?? posSlug;
-const level = values.level;
-const tagsCsv = values.tags;
-const thumbUrl = values.thumb;
+const title = (cfg.title ?? "").trim();
+if (!title) {
+  console.error(`Error: JSON(${jsonPath}) に "title" がありません。`);
+  process.exit(1);
+}
 
-// ---- DBに存在するプロパティだけを組み立てる ----
+const htmlCode =
+  typeof values.html === "string"
+    ? values.html
+    : (cfg.htmlCode ?? "<body>\n  <!-- ここから -->\n\n  <!-- ここまで -->");
+
+const cssCode =
+  typeof values.css === "string"
+    ? values.css
+    : (cfg.cssCode ?? "/* ここにコードを追加する */");
+
+// DB プロパティ（任意）
 const props: Record<string, unknown> = {};
 
-if (level) {
-  props["レベル"] = { select: { name: level } };
+const levelName = values.level ?? cfg.level;
+if (levelName) {
+  props["レベル"] = { select: { name: levelName } };
 }
-if (tagsCsv) {
-  const items = tagsCsv
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
-  if (items.length)
-    props["タグ"] = { multi_select: items.map((name) => ({ name })) };
+
+const tagNamesFromCli = values.tags
+  ? values.tags
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean)
+  : null;
+
+const tagNames = tagNamesFromCli ?? cfg.tags ?? [];
+if (tagNames.length) {
+  props["タグ"] = { multi_select: tagNames.map((name) => ({ name })) };
 }
-if (thumbUrl) {
+if (values.thumb) {
   props["サムネイル"] = {
-    files: [{ type: "external", name: "thumb", external: { url: thumbUrl } }],
+    files: [
+      { type: "external", name: "thumb", external: { url: values.thumb } },
+    ],
   };
 }
 
-// ---- リクエストペイロード（Slug 列が無ければ slug は送らない）----
+// リクエスト body（ページタイトルは JSON の title）
 const payload: Payload = {
   title,
-  ...(slug ? { slug } : {}),
+  htmlCode,
+  cssCode,
+  ...(values.slug ? { slug: values.slug } : {}),
   ...(Object.keys(props).length ? { properties: props } : {}),
   template: "lesson-v1",
-  templateVars: { sampleTitle: title },
+  templateVars: {
+    sampleTitle: title, // 本文の見出しも JSON の title を使用
+    htmlCode,
+    cssCode,
+  },
 };
 
 async function main() {
@@ -127,3 +171,5 @@ main().catch((e) => {
   console.error(e);
   process.exit(1);
 });
+
+console.log("PAYLOAD:", JSON.stringify(payload, null, 2));

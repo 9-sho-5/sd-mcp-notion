@@ -3,10 +3,7 @@ import type { BlockObjectRequest } from "@notionhq/client/build/src/api-endpoint
 import { notion } from "../clients/notion";
 import { ENV } from "../config/env";
 import { compact } from "../utils/compact";
-import {
-  buildSlugProperty,
-  buildTitleProperty,
-} from "../utils/buildProperties";
+import { buildTitleProperty } from "../utils/buildProperties";
 import { buildLessonTemplate } from "../utils/templates/lessonV1";
 
 type CreatePageArgs = Parameters<typeof notion.pages.create>[0];
@@ -85,22 +82,22 @@ export async function findPageBySlug(
 export async function upsertPage(input: {
   databaseId?: string;
   title: string;
+  htmlCode?: string;
+  cssCode?: string;
   slug?: string;
   // 👇 コントローラに合わせて緩める（Record でも CreateProps でもOK）
   properties?: Record<string, unknown> | CreateProps;
   children?: BlockObjectRequest[];
   template?: "lesson-v1";
-  templateVars?: { sampleTitle?: string };
+  templateVars?: { sampleTitle?: string; htmlCode?: string; cssCode?: string };
 }) {
   const databaseId = input.databaseId ?? ENV.NOTION_DATABASE_ID;
 
   const baseProps = buildTitleProperty(input.title);
-  const slugProps = buildSlugProperty(input.slug);
   const extraProps = normalizeToCreateProps(input.properties);
 
   const createProps = compact({
     ...baseProps,
-    ...slugProps,
     ...extraProps,
   });
 
@@ -112,29 +109,9 @@ export async function upsertPage(input: {
 
   if (!children && input.template === "lesson-v1") {
     const sampleTitle = input.templateVars?.sampleTitle ?? input.title;
-    children = buildLessonTemplate(sampleTitle);
-  }
-
-  if (input.slug) {
-    const existing = await findPageBySlug(
-      databaseId,
-      ENV.NOTION_SLUG_PROP,
-      input.slug
-    );
-    if (existing) {
-      const updated = await notion.pages.update({
-        page_id: (existing as any).id,
-        properties: createProps as unknown as UpdateProps,
-      } as UpdatePageArgs);
-
-      if (children) {
-        await notion.blocks.children.append({
-          block_id: (existing as any).id,
-          children,
-        });
-      }
-      return { mode: "update", page: updated };
-    }
+    const htmlCode = input.templateVars?.htmlCode ?? input.htmlCode;
+    const cssCode = input.templateVars?.cssCode ?? input.cssCode;
+    children = await buildLessonTemplate(sampleTitle, htmlCode, cssCode);
   }
 
   const created = await notion.pages.create({

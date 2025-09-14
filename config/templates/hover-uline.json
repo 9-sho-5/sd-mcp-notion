@@ -1,0 +1,7 @@
+{
+  "title": "下線スライド（リンク風）",
+  "htmlCode": "<a class='btn uline' href='#'>Hover me</a>",
+  "cssCode": ".btn{\n  display: inline-block;\n  padding: .6rem 1rem;\n  font-weight: 600;\n  color: #111;\n  text-decoration: none;\n}\n\n.btn.uline{\n  position: relative;\n}\n.btn.uline::after{\n  content: '';\n  position: absolute;\n  left: 0;\n  bottom: -2px;\n  width: 100%;\n  height: 2px;\n  background: #111;\n  transform: scaleX(0);\n  transform-origin: left;\n  transition: transform .25s ease;\n}\n.btn.uline:hover::after,\n.btn.uline:focus-visible::after{\n  transform: scaleX(1);\n}\n\n/* アクセシビリティ: キーボードフォーカスの可視化 */\n.btn.uline:focus-visible{\n  outline: 2px solid #111;\n  outline-offset: 2px;\n}",
+  "tags": ["ホバーアニメーション"],
+  "level": "初級"
+}
