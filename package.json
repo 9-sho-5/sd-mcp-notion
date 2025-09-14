@@ -9,6 +9,7 @@
     "start": "tsx src/index.ts",
     "build": "tsc -p .",
     "test": "echo \"Error: no test specified\" && exit 1",
+    "sample:create-page": "tsx scripts/create-sample-page.ts",
     "test:create": "scripts/notion-tests.sh create",
     "test:upsert": "scripts/notion-tests.sh upsert",
     "test:props": "scripts/notion-tests.sh props",
